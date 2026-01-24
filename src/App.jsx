@@ -4,10 +4,8 @@ import Login from './components/auth/Login';
 import Navigation from './components/layout/Navigation';
 import Dashboard from './components/dashboard/Dashboard';
 import Ventas from './components/ventas/Ventas';
-
-// Importa los otros componentes cuando los crees
-// import Inventario from './components/inventario/Inventario';
-// import Reportes from './components/reportes/Reportes';
+import Inventario from './components/inventario/Inventario';
+import Reportes from './components/reportes/Reportes';
 
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -32,9 +30,9 @@ const AppContent = () => {
       case 'ventas':
         return <Ventas />;
       case 'inventario':
-        return <div className="alert alert-info">Componente Inventario - Por implementar</div>;
+        return <Inventario />;
       case 'reportes':
-        return <div className="alert alert-info">Componente Reportes - Por implementar</div>;
+        return <Reportes />;
       default:
         return <Dashboard />;
     }
