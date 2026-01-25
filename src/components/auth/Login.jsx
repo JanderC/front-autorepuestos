@@ -109,31 +109,6 @@ const Login = () => {
                     )}
                   </button>
                 </form>
-
-                <div className="mt-4 p-3 rounded-3" style={{
-                  background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-                  border: '1px solid #e2e8f0',
-                  borderLeft: '4px solid #dc2626',
-                }}>
-                  <div className="d-flex align-items-center mb-2">
-                    <i className="bi bi-gear-fill text-danger me-2"></i>
-                    <small className="fw-semibold text-muted">CREDENCIALES DE PRUEBA</small>
-                  </div>
-                  <div className="row">
-                    <div className="col-12 col-sm-6 mb-2 mb-sm-0">
-                      <small className="text-muted me-2">Usuario:</small>
-                      <span className="badge text-white px-2 py-1" style={{ backgroundColor: '#dc2626' }}>
-                        admin
-                      </span>
-                    </div>
-                    <div className="col-12 col-sm-6">
-                      <small className="text-muted me-2">Contraseña:</small>
-                      <span className="badge text-white px-2 py-1" style={{ backgroundColor: '#dc2626' }}>
-                        admin123
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
