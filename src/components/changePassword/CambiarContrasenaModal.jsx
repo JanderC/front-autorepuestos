@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import * as api from '../../services/api';
+import api from '../../services/api';
 
 const CambiarContrasenaModal = ({ isOpen, onClose, onSuccess }) => {
   const [usuarios, setUsuarios] = useState([]);
