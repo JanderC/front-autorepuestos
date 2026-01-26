@@ -32,6 +32,14 @@ export default {
   
   verify: () => apiCall('/api/auth/verify'),
 
+  // Gestión de Usuarios (solo admin)
+  getUsuarios: () => apiCall('/api/auth/usuarios'),
+  cambiarContrasena: (userId, nuevaContrasena) =>
+    apiCall('/api/auth/cambiar-contrasena', {
+      method: 'PUT',
+      body: JSON.stringify({ userId, nuevaContrasena }),
+    }),
+
   // Productos
   getProductos: () => apiCall('/api/productos'),
   getProductosStockBajo: () => apiCall('/api/productos/stock-bajo'),

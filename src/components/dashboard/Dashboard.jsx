@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Package, ShoppingCart, AlertTriangle, DollarSign, Wallet } from 'lucide-react';
+import { Calendar, Package, ShoppingCart, AlertTriangle, DollarSign, Wallet, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { formatearMoneda } from '../../utils/formatters';
+import CambiarContrasenaModal from '../changePassword/CambiarContrasenaModal';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ const Dashboard = () => {
   const [stockBajo, setStockBajo] = useState([]);
   const [dolarData, setDolarData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [modalPasswordOpen, setModalPasswordOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,7 +21,6 @@ const Dashboard = () => {
           api.getDolarActual(),
         ];
 
-        // Solo admin puede ver stock bajo
         if (user?.rol === 'admin') {
           promises.push(api.getProductosStockBajo());
         }
@@ -54,12 +55,27 @@ const Dashboard = () => {
 
   return (
     <div className="container-fluid px-2 px-md-4">
+      {/* Header con botón de cambio de contraseña */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4">
         <h2 className="mb-2 mb-md-0 fs-4 fs-md-2">Dashboard AutoRepuestos Los Pits</h2>
-        <div className="text-muted d-flex align-items-center">
-          <Calendar size={16} className="me-2" />
-          <small className="d-none d-md-inline">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</small>
-          <small className="d-md-none">{new Date().toLocaleDateString('es-ES')}</small>
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          <div className="text-muted d-flex align-items-center">
+            <Calendar size={16} className="me-2" />
+            <small className="d-none d-md-inline">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</small>
+            <small className="d-md-none">{new Date().toLocaleDateString('es-ES')}</small>
+          </div>
+          
+          {/* Botón Cambiar Contraseña - Solo Admin */}
+          {user?.rol === 'admin' && (
+            <button
+              className="btn btn-sm btn-danger"
+              onClick={() => setModalPasswordOpen(true)}
+            >
+              <Lock size={16} className="me-1" />
+              <span className="d-none d-md-inline">Cambiar Contraseña</span>
+              <span className="d-md-none">Contraseña</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -214,6 +230,16 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de cambio de contraseña */}
+      <CambiarContrasenaModal
+        isOpen={modalPasswordOpen}
+        onClose={() => setModalPasswordOpen(false)}
+        onSuccess={() => {
+          // Opcional: refrescar datos o mostrar notificación
+          console.log('Contraseña cambiada exitosamente');
+        }}
+      />
     </div>
   );
 };
