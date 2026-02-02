@@ -1,36 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, RefreshCw, Calculator, Edit2, Trash2, 
-  AlertTriangle, Search, ChevronLeft, ChevronRight, X 
-} from 'lucide-react';
+import { Plus, RefreshCw, Calculator, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../../services/api';
 import { formatearMoneda, formatearNumero } from '../../utils/formatters';
 
 const Inventario = () => {
   const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [mensaje, setMensaje] = useState('');
-
-  // --- ESTADOS PARA BÚSQUEDA Y PAGINACIÓN ---
-  const [filtro, setFiltro] = useState('');
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [itemsPorPagina] = useState(10);
-
-  // --- ESTADOS DE MODALES ---
   const [modalProducto, setModalProducto] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
-  const [modalStock, setModalStock] = useState(null);
-  const [modalEliminar, setModalEliminar] = useState(null);
-  const [mostrarTasas, setMostrarTasas] = useState(false);
-
-  // --- ESTADOS DE FORMULARIOS ---
   const [nuevoProducto, setNuevoProducto] = useState({
     codigo: '', nombre: '', descripcion: '', precio_venta: '', precio_compra: '',
     stock_actual: '', stock_minimo: '', categoria: '', moneda_base: 'USD', porcentaje_ganancia: ''
   });
   const [productoEditando, setProductoEditando] = useState({});
+  const [modalStock, setModalStock] = useState(null);
   const [ajusteStock, setAjusteStock] = useState({ cantidad: '', motivo: '' });
+  const [modalEliminar, setModalEliminar] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [mensaje, setMensaje] = useState('');
   const [tasasCambio, setTasasCambio] = useState({ usd_cop: 4000, bs_cop: 0.1, usd_bs: 40000 });
+  const [mostrarTasas, setMostrarTasas] = useState(false);
   const [nuevasTasas, setNuevasTasas] = useState({ usd_cop: '', bs_cop: '', usd_bs: '' });
 
   useEffect(() => {
@@ -61,39 +49,6 @@ const Inventario = () => {
       console.error('Error:', error);
     }
   };
-
-  // ==========================================
-  // LÓGICA DE FILTRADO Y PAGINACIÓN
-  // ==========================================
-  
-  // 1. Filtrar productos según el input de búsqueda (por nombre o código)
-  const productosFiltrados = productos.filter(p => 
-    p.nombre.toLowerCase().includes(filtro.toLowerCase()) || 
-    p.codigo.toLowerCase().includes(filtro.toLowerCase())
-  );
-
-  // 2. Calcular índices para la página actual
-  const totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
-  const indiceUltimoItem = paginaActual * itemsPorPagina;
-  const indicePrimerItem = indiceUltimoItem - itemsPorPagina;
-  
-  // 3. Obtener solo los productos que se mostrarán en la tabla
-  const productosPaginados = productosFiltrados.slice(indicePrimerItem, indiceUltimoItem);
-
-  const cambiarPagina = (numero) => {
-    if (numero >= 1 && numero <= totalPaginas) {
-      setPaginaActual(numero);
-    }
-  };
-
-  const handleSearch = (e) => {
-    setFiltro(e.target.value);
-    setPaginaActual(1); // Resetear a la página 1 al buscar
-  };
-
-  // ==========================================
-  // HANDLERS DE API (Sincronización y CRUD)
-  // ==========================================
 
   const sincronizarBCV = async () => {
     try {
@@ -183,196 +138,122 @@ const Inventario = () => {
   };
 
   if (loading) {
-    return <div className="d-flex justify-content-center p-5"><div className="spinner-border text-primary"></div></div>;
+    return <div className="d-flex justify-content-center p-5"><div className="spinner-border"></div></div>;
   }
 
   return (
-    <div className="container-fluid py-4">
-      {/* Encabezado Principal */}
+    <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold mb-0">Gestión de Inventario</h2>
-          <span className="text-muted small">Total: {productosFiltrados.length} productos</span>
-        </div>
+        <h2>Gestión de Inventario</h2>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-info btn-sm" onClick={sincronizarBCV}>
-            <RefreshCw size={16} className="me-1" /> Sync BCV
+            <RefreshCw size={16} /> Sync BCV
           </button>
           <button className="btn btn-outline-secondary btn-sm" onClick={() => {
             setNuevasTasas(tasasCambio);
             setMostrarTasas(true);
           }}>
-            <Calculator size={16} className="me-1" /> Tasas
+            <Calculator size={16} /> Tasas
           </button>
           <button className="btn btn-dark" onClick={() => setModalProducto(true)}>
-            <Plus size={18} className="me-1" /> Nuevo Producto
+            <Plus size={16} /> Nuevo Producto
           </button>
         </div>
       </div>
 
       {mensaje && (
-        <div className={`alert ${mensaje.includes('Error') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`}>
+        <div className={`alert ${mensaje.includes('Error') ? 'alert-danger' : 'alert-success'} alert-dismissible`}>
           {mensaje}
           <button className="btn-close" onClick={() => setMensaje('')}></button>
         </div>
       )}
 
-      {/* Barra de Tasas */}
-      <div className="card mb-4 border-0 shadow-sm">
-        <div className="card-body py-2 bg-light rounded">
-          <div className="row text-center align-items-center">
-            <div className="col-md-4 border-end"><small className="text-muted">USD → COP:</small> <strong>{formatearNumero(tasasCambio.usd_cop, 0)}</strong></div>
-            <div className="col-md-4 border-end"><small className="text-muted">USD → Bs:</small> <strong>{formatearNumero(tasasCambio.usd_bs, 0)}</strong></div>
-            <div className="col-md-4"><small className="text-muted">Bs → COP:</small> <strong>{formatearNumero(tasasCambio.bs_cop, 4)}</strong></div>
+      <div className="card mb-3">
+        <div className="card-body py-2">
+          <div className="row text-center">
+            <div className="col-md-4"><small>USD → COP:</small> <strong>{formatearNumero(tasasCambio.usd_cop, 0)}</strong></div>
+            <div className="col-md-4"><small>USD → Bs:</small> <strong>{formatearNumero(tasasCambio.usd_bs, 0)}</strong></div>
+            <div className="col-md-4"><small>Bs → COP:</small> <strong>{formatearNumero(tasasCambio.bs_cop, 4)}</strong></div>
           </div>
         </div>
       </div>
 
-      {/* BARRA DE BÚSQUEDA (FILTRO) */}
-      <div className="row mb-3">
-        <div className="col-md-6 col-lg-4">
-          <div className="input-group">
-            <span className="input-group-text bg-white border-end-0">
-              <Search size={18} className="text-muted" />
-            </span>
-            <input 
-              type="text" 
-              className="form-control border-start-0 ps-0" 
-              placeholder="Buscar por nombre o código..." 
-              value={filtro}
-              onChange={handleSearch}
-            />
-            {filtro && (
-              <button className="btn btn-outline-secondary border-start-0" onClick={() => {setFiltro(''); setPaginaActual(1);}}>
-                <X size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tabla de Productos */}
-      <div className="card shadow-sm border-0">
-        <div className="card-body p-0">
+      <div className="card">
+        <div className="card-body">
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-light">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="ps-4">Código</th>
+                  <th>Código</th>
                   <th>Producto</th>
                   <th>Categoría</th>
                   <th>Moneda</th>
-                  <th>Precio Venta</th>
+                  <th>Precio Base</th>
                   <th>Stock</th>
-                  <th className="text-end pe-4">Acciones</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {productosPaginados.length > 0 ? (
-                  productosPaginados.map((p) => (
-                    <tr key={p.id}>
-                      <td className="ps-4"><code>{p.codigo}</code></td>
-                      <td>
-                        <div className="fw-bold">{p.nombre}</div>
-                        <div className="text-muted small">{p.descripcion?.substring(0, 40)}</div>
-                      </td>
-                      <td><span className="badge bg-light text-dark border">{p.categoria || 'Gral'}</span></td>
-                      <td>
-                        <span className={`badge ${p.moneda_base === 'USD' ? 'bg-success' : p.moneda_base === 'COP' ? 'bg-primary' : 'bg-warning text-dark'}`}>
-                          {p.moneda_base}
-                        </span>
-                      </td>
-                      <td>{formatearMoneda(p.precio_venta, p.moneda_base)}</td>
-                      <td>
-                        <span className={`badge ${p.stock_actual <= p.stock_minimo ? 'bg-danger' : 'bg-success'}`}>
-                          {p.stock_actual}
-                        </span>
-                      </td>
-                      <td className="text-end pe-4">
-                        <div className="btn-group">
-                          <button className="btn btn-sm btn-outline-primary" onClick={() => {
-                            setProductoEditando({...p, porcentaje_ganancia: ''});
-                            setModalEditar(true);
-                          }}><Edit2 size={14} /></button>
-                          <button className="btn btn-sm btn-outline-info" onClick={() => setModalStock(p)}>Stock</button>
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => setModalEliminar(p)}><Trash2 size={14} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="text-center py-5 text-muted">
-                      No se encontraron resultados para "{filtro}"
+                {productos.map((p) => (
+                  <tr key={p.id}>
+                    <td><code>{p.codigo}</code></td>
+                    <td>{p.nombre}</td>
+                    <td>{p.categoria}</td>
+                    <td><span className={`badge ${p.moneda_base === 'USD' ? 'bg-success' : p.moneda_base === 'COP' ? 'bg-primary' : 'bg-warning'}`}>{p.moneda_base}</span></td>
+                    <td>{formatearMoneda(p.precio_venta, p.moneda_base)}</td>
+                    <td><span className={`badge ${p.stock_actual <= p.stock_minimo ? 'bg-warning' : 'bg-success'}`}>{p.stock_actual}</span></td>
+                    <td>
+                      <div className="btn-group">
+                        <button className="btn btn-sm btn-outline-success" onClick={() => {
+                          setProductoEditando({...p, porcentaje_ganancia: ''});
+                          setModalEditar(true);
+                        }}><Edit2 size={14} /></button>
+                        <button className="btn btn-sm btn-outline-primary" onClick={() => setModalStock(p)}>Stock</button>
+                        <button className="btn btn-sm btn-outline-danger" onClick={() => setModalEliminar(p)}><Trash2 size={14} /></button>
+                      </div>
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
-
-        {/* COMPONENTE DE PAGINACIÓN */}
-        {totalPaginas > 1 && (
-          <div className="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-            <small className="text-muted">
-              Mostrando {indicePrimerItem + 1} - {Math.min(indiceUltimoItem, productosFiltrados.length)} de {productosFiltrados.length}
-            </small>
-            <nav>
-              <ul className="pagination pagination-sm mb-0">
-                <li className={`page-item ${paginaActual === 1 ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => cambiarPagina(paginaActual - 1)}>
-                    <ChevronLeft size={14} />
-                  </button>
-                </li>
-                {[...Array(totalPaginas)].map((_, i) => (
-                  <li key={i} className={`page-item ${paginaActual === i + 1 ? 'active' : ''}`}>
-                    <button className="page-link" onClick={() => cambiarPagina(i + 1)}>{i + 1}</button>
-                  </li>
-                ))}
-                <li className={`page-item ${paginaActual === totalPaginas ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => cambiarPagina(paginaActual + 1)}>
-                    <ChevronRight size={14} />
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        )}
       </div>
 
-      {/* --- MODALES (Manteniendo la funcionalidad original) --- */}
-      
       {/* Modal Nuevo Producto */}
       {modalProducto && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+          <div className="modal-dialog modal-lg">
             <div className="modal-content">
-              <div className="modal-header bg-dark text-white">
-                <h5 className="mb-0">Nuevo Producto</h5>
-                <button className="btn-close btn-close-white" onClick={() => setModalProducto(false)}></button>
+              <div className="modal-header">
+                <h5>Nuevo Producto</h5>
+                <button className="btn-close" onClick={() => setModalProducto(false)}></button>
               </div>
               <form onSubmit={crearProducto}>
                 <div className="modal-body">
                   <div className="row g-3">
                     <div className="col-md-6">
-                      <label className="form-label small fw-bold">Código</label>
+                      <label>Código</label>
                       <input className="form-control" value={nuevoProducto.codigo} onChange={(e) => setNuevoProducto({...nuevoProducto, codigo: e.target.value})} required />
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label small fw-bold">Nombre</label>
+                      <label>Nombre</label>
                       <input className="form-control" value={nuevoProducto.nombre} onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                     </div>
+                    <div className="col-12">
+                      <label>Descripción</label>
+                      <textarea className="form-control" rows="2" value={nuevoProducto.descripcion} onChange={(e) => setNuevoProducto({...nuevoProducto, descripcion: e.target.value})} />
+                    </div>
                     <div className="col-md-4">
-                      <label className="form-label small fw-bold">Moneda Base</label>
+                      <label>Moneda Base</label>
                       <select className="form-select" value={nuevoProducto.moneda_base} onChange={(e) => setNuevoProducto({...nuevoProducto, moneda_base: e.target.value})}>
-                        <option value="USD">USD</option>
-                        <option value="COP">COP</option>
-                        <option value="BS">BS</option>
+                        <option value="USD">Dólar (USD)</option>
+                        <option value="COP">Peso (COP)</option>
+                        <option value="BS">Bolívar (Bs)</option>
                       </select>
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label small fw-bold">Precio Compra</label>
+                      <label>Precio Compra</label>
                       <input type="number" step="0.01" className="form-control" value={nuevoProducto.precio_compra} onChange={(e) => setNuevoProducto({
                         ...nuevoProducto,
                         precio_compra: e.target.value,
@@ -380,18 +261,34 @@ const Inventario = () => {
                       })} />
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label small fw-bold">% Ganancia</label>
+                      <label>% Ganancia</label>
                       <input type="number" step="0.01" className="form-control" value={nuevoProducto.porcentaje_ganancia} onChange={(e) => setNuevoProducto({
                         ...nuevoProducto,
                         porcentaje_ganancia: e.target.value,
                         precio_venta: calcularPrecioConGanancia(nuevoProducto.precio_compra, e.target.value)
                       })} />
                     </div>
+                    <div className="col-md-4">
+                      <label>Precio Venta</label>
+                      <input type="number" step="0.01" className="form-control" value={nuevoProducto.precio_venta} onChange={(e) => setNuevoProducto({...nuevoProducto, precio_venta: e.target.value})} required readOnly={nuevoProducto.porcentaje_ganancia && nuevoProducto.precio_compra} />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Stock Inicial</label>
+                      <input type="number" className="form-control" value={nuevoProducto.stock_actual} onChange={(e) => setNuevoProducto({...nuevoProducto, stock_actual: e.target.value})} required />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Stock Mínimo</label>
+                      <input type="number" className="form-control" value={nuevoProducto.stock_minimo} onChange={(e) => setNuevoProducto({...nuevoProducto, stock_minimo: e.target.value})} required />
+                    </div>
+                    <div className="col-12">
+                      <label>Categoría</label>
+                      <input className="form-control" value={nuevoProducto.categoria} onChange={(e) => setNuevoProducto({...nuevoProducto, categoria: e.target.value})} />
+                    </div>
                   </div>
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setModalProducto(false)}>Cancelar</button>
-                  <button type="submit" className="btn btn-dark">Guardar Producto</button>
+                  <button type="submit" className="btn btn-dark">Crear</button>
                 </div>
               </form>
             </div>
@@ -399,36 +296,81 @@ const Inventario = () => {
         </div>
       )}
 
-      {/* Modal Ajuste Stock */}
+      {/* Modal Editar (similar estructura) */}
+      {modalEditar && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5>Editar Producto</h5>
+                <button className="btn-close" onClick={() => setModalEditar(false)}></button>
+              </div>
+              <form onSubmit={editarProducto}>
+                <div className="modal-body">
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <label>Código</label>
+                      <input className="form-control" value={productoEditando.codigo} onChange={(e) => setProductoEditando({...productoEditando, codigo: e.target.value})} required />
+                    </div>
+                    <div className="col-md-6">
+                      <label>Nombre</label>
+                      <input className="form-control" value={productoEditando.nombre} onChange={(e) => setProductoEditando({...productoEditando, nombre: e.target.value})} required />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Precio Venta</label>
+                      <input type="number" step="0.01" className="form-control" value={productoEditando.precio_venta} onChange={(e) => setProductoEditando({...productoEditando, precio_venta: e.target.value})} required />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Stock Actual</label>
+                      <input type="number" className="form-control" value={productoEditando.stock_actual} onChange={(e) => setProductoEditando({...productoEditando, stock_actual: e.target.value})} required />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Stock Mínimo</label>
+                      <input type="number" className="form-control" value={productoEditando.stock_minimo} onChange={(e) => setProductoEditando({...productoEditando, stock_minimo: e.target.value})} required />
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setModalEditar(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-success">Actualizar</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ajustar Stock */}
       {modalStock && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog">
             <div className="modal-content">
-              <div className="modal-header bg-info text-white">
-                <h5 className="mb-0">Ajustar Stock: {modalStock.nombre}</h5>
-                <button className="btn-close btn-close-white" onClick={() => setModalStock(null)}></button>
+              <div className="modal-header">
+                <h5>Ajustar Stock - {modalStock.nombre}</h5>
+                <button className="btn-close" onClick={() => setModalStock(null)}></button>
               </div>
               <form onSubmit={ajustarStockProducto}>
-                <div className="modal-body p-4 text-center">
-                  <p className="mb-1 text-muted">Stock actual</p>
-                  <h2 className="mb-4">{modalStock.stock_actual}</h2>
-                  <div className="text-start mb-3">
-                    <label className="form-label fw-bold">Cantidad a sumar/restar</label>
-                    <input type="number" className="form-control form-control-lg" value={ajusteStock.cantidad} onChange={(e) => setAjusteStock({...ajusteStock, cantidad: e.target.value})} required placeholder="Ej: 10 o -5" />
+                <div className="modal-body">
+                  <p><strong>Stock actual:</strong> {modalStock.stock_actual}</p>
+                  <div className="mb-3">
+                    <label>Cantidad a ajustar</label>
+                    <input type="number" className="form-control" value={ajusteStock.cantidad} onChange={(e) => setAjusteStock({...ajusteStock, cantidad: e.target.value})} required />
+                    <small>Nuevo stock: {modalStock.stock_actual + (parseInt(ajusteStock.cantidad) || 0)}</small>
                   </div>
-                  <div className="text-start">
-                    <label className="form-label fw-bold">Motivo</label>
-                    <select className="form-select" value={ajusteStock.motivo} onChange={(e) => setAjusteStock({...ajusteStock, motivo: e.target.value})} required>
-                      <option value="">Seleccione...</option>
+                  <div className="mb-3">
+                    <label>Motivo</label>
+                    <select className="form-control" value={ajusteStock.motivo} onChange={(e) => setAjusteStock({...ajusteStock, motivo: e.target.value})} required>
+                      <option value="">Seleccione</option>
                       <option value="compra">Compra</option>
-                      <option value="ajuste">Ajuste Manual</option>
+                      <option value="devolucion">Devolución</option>
+                      <option value="ajuste">Ajuste</option>
                       <option value="perdida">Pérdida</option>
                     </select>
                   </div>
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setModalStock(null)}>Cancelar</button>
-                  <button type="submit" className="btn btn-info text-white">Actualizar Stock</button>
+                  <button type="submit" className="btn btn-primary">Ajustar</button>
                 </div>
               </form>
             </div>
@@ -439,16 +381,24 @@ const Inventario = () => {
       {/* Modal Eliminar */}
       {modalEliminar && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog">
             <div className="modal-content">
-              <div className="modal-body p-4 text-center">
-                <AlertTriangle size={50} className="text-danger mb-3" />
-                <h5>¿Eliminar {modalEliminar.nombre}?</h5>
-                <p className="text-muted">Esta acción es irreversible.</p>
-                <div className="d-flex justify-content-center gap-2 mt-4">
-                  <button className="btn btn-light" onClick={() => setModalEliminar(null)}>Cancelar</button>
-                  <button className="btn btn-danger" onClick={eliminarProducto}>Confirmar Eliminación</button>
+              <div className="modal-header">
+                <h5>Confirmar Eliminación</h5>
+                <button className="btn-close" onClick={() => setModalEliminar(null)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="d-flex align-items-center mb-3">
+                  <AlertTriangle size={48} className="text-warning me-3" />
+                  <div>
+                    <p>¿Eliminar este producto?</p>
+                    <strong>{modalEliminar.nombre}</strong>
+                  </div>
                 </div>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setModalEliminar(null)}>Cancelar</button>
+                <button className="btn btn-danger" onClick={eliminarProducto}>Eliminar</button>
               </div>
             </div>
           </div>
@@ -458,30 +408,32 @@ const Inventario = () => {
       {/* Modal Tasas */}
       {mostrarTasas && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="mb-0">Ajuste de Tasas de Cambio</h5>
+                <h5>Gestión de Tasas</h5>
                 <button className="btn-close" onClick={() => setMostrarTasas(false)}></button>
               </div>
               <form onSubmit={actualizarTasas}>
-                <div className="modal-body p-4">
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">USD a COP</label>
-                    <input type="number" step="0.01" className="form-control" value={nuevasTasas.usd_cop} onChange={(e) => setNuevasTasas({...nuevasTasas, usd_cop: e.target.value})} />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">USD a BS</label>
-                    <input type="number" step="0.01" className="form-control" value={nuevasTasas.usd_bs} onChange={(e) => setNuevasTasas({...nuevasTasas, usd_bs: e.target.value})} />
-                  </div>
-                  <div className="mb-0">
-                    <label className="form-label fw-bold">BS a COP</label>
-                    <input type="number" step="0.0001" className="form-control" value={nuevasTasas.bs_cop} onChange={(e) => setNuevasTasas({...nuevasTasas, bs_cop: e.target.value})} />
+                <div className="modal-body">
+                  <div className="row g-3">
+                    <div className="col-md-4">
+                      <label>USD → COP</label>
+                      <input type="number" step="0.01" className="form-control" value={nuevasTasas.usd_cop} onChange={(e) => setNuevasTasas({...nuevasTasas, usd_cop: e.target.value})} />
+                    </div>
+                    <div className="col-md-4">
+                      <label>USD → Bs</label>
+                      <input type="number" step="0.01" className="form-control" value={nuevasTasas.usd_bs} onChange={(e) => setNuevasTasas({...nuevasTasas, usd_bs: e.target.value})} />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Bs → COP</label>
+                      <input type="number" step="0.01" className="form-control" value={nuevasTasas.bs_cop} onChange={(e) => setNuevasTasas({...nuevasTasas, bs_cop: e.target.value})} />
+                    </div>
                   </div>
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setMostrarTasas(false)}>Cancelar</button>
-                  <button type="submit" className="btn btn-primary">Guardar Cambios</button>
+                  <button type="submit" className="btn btn-primary">Actualizar</button>
                 </div>
               </form>
             </div>
