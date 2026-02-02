@@ -132,14 +132,14 @@ const Dashboard = () => {
 
       {/* Estadísticas generales - Grid Responsive */}
       <div className="row g-2 g-md-3 mb-3 mb-md-4">
-        {user?.rol === 'admin' && stats?.capital_total && (
+        {user?.rol === 'admin' && stats?.capital_inventario && (
           <div className="col-12 col-sm-6 col-lg-3">
             <div className="card bg-warning text-dark h-100">
               <div className="card-body p-3">
                 <div className="d-flex justify-content-between align-items-start">
                   <div className="flex-grow-1">
                     <h6 className="mb-1 fs-6">Capital Invertido</h6>
-                    <h4 className="mb-0 fs-5 fs-md-4">{formatearMoneda(stats.capital_total.capital_cop, 'COP')}</h4>
+                    <h4 className="mb-0 fs-5 fs-md-4">{formatearMoneda(stats.capital_inventario.total_usd, 'USD')}</h4>
                     <small className="d-block text-truncate">Valor total del inventario</small>
                   </div>
                   <Wallet size={32} className="opacity-75 d-none d-md-block" />
