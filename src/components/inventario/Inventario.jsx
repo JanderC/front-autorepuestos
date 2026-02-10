@@ -11,7 +11,7 @@ const Inventario = () => {
   const [modalEditar, setModalEditar] = useState(false);
   const [nuevoProducto, setNuevoProducto] = useState({
     codigo: '', nombre: '', descripcion: '', precio_venta: '', precio_compra: '',
-    stock_actual: '', stock_minimo: '', categoria: '', moneda_base: 'USD', porcentaje_ganancia: ''
+    stock_actual: '', stock_minimo: '', categoria: '', marca: '', moneda_base: 'USD', porcentaje_ganancia: ''
   });
   const [productoEditando, setProductoEditando] = useState({});
   const [modalStock, setModalStock] = useState(null);
@@ -23,8 +23,9 @@ const Inventario = () => {
   const [mostrarTasas, setMostrarTasas] = useState(false);
   const [nuevasTasas, setNuevasTasas] = useState({ usd_cop: '', bs_cop: '', usd_bs: '' });
 
-  // Búsqueda y paginación
+  // Búsqueda, filtro de marca y paginación
   const [busqueda, setBusqueda] = useState('');
+  const [filtroMarca, setFiltroMarca] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
 
   useEffect(() => {
@@ -32,10 +33,10 @@ const Inventario = () => {
     fetchTasasCambio();
   }, []);
 
-  // Resetear a página 1 cuando cambia la búsqueda
+  // Resetear a página 1 cuando cambia búsqueda o filtro de marca
   useEffect(() => {
     setPaginaActual(1);
-  }, [busqueda]);
+  }, [busqueda, filtroMarca]);
 
   const fetchProductos = async () => {
     try {
@@ -95,7 +96,7 @@ const Inventario = () => {
       setModalProducto(false);
       setNuevoProducto({
         codigo: '', nombre: '', descripcion: '', precio_venta: '', precio_compra: '',
-        stock_actual: '', stock_minimo: '', categoria: '', moneda_base: 'USD', porcentaje_ganancia: ''
+        stock_actual: '', stock_minimo: '', categoria: '', marca: '', moneda_base: 'USD', porcentaje_ganancia: ''
       });
       fetchProductos();
       setTimeout(() => setMensaje(''), 3000);
@@ -148,15 +149,21 @@ const Inventario = () => {
     return (parseFloat(precio) * (1 + parseFloat(porcentaje) / 100)).toFixed(2);
   };
 
-  // Filtrado por búsqueda
+  // Lista de marcas únicas para el select de filtro
+  const marcasUnicas = [...new Set(
+    productos.map((p) => p.marca).filter(Boolean)
+  )].sort();
+
+  // Filtrado por búsqueda y marca
   const productosFiltrados = productos.filter((p) => {
     const termino = busqueda.toLowerCase().trim();
-    if (!termino) return true;
-    return (
+    const coincideBusqueda = !termino || (
       p.codigo?.toLowerCase().includes(termino) ||
       p.nombre?.toLowerCase().includes(termino) ||
       p.categoria?.toLowerCase().includes(termino)
     );
+    const coincideMarca = !filtroMarca || p.marca === filtroMarca;
+    return coincideBusqueda && coincideMarca;
   });
 
   // Paginación
@@ -171,7 +178,6 @@ const Inventario = () => {
     }
   };
 
-  // Genera array de números de página a mostrar
   const getPaginas = () => {
     const paginas = [];
     const rango = 2;
@@ -225,9 +231,9 @@ const Inventario = () => {
       <div className="card">
         <div className="card-body">
 
-          {/* Barra de búsqueda */}
-          <div className="row mb-3">
-            <div className="col-md-6">
+          {/* Barra de búsqueda y filtro de marca */}
+          <div className="row mb-3 g-2">
+            <div className="col-md-5">
               <div className="input-group">
                 <span className="input-group-text">
                   <Search size={16} />
@@ -246,7 +252,19 @@ const Inventario = () => {
                 )}
               </div>
             </div>
-            <div className="col-md-6 d-flex align-items-center justify-content-end">
+            <div className="col-md-3">
+              <select
+                className="form-select"
+                value={filtroMarca}
+                onChange={(e) => setFiltroMarca(e.target.value)}
+              >
+                <option value="">Todas las marcas</option>
+                {marcasUnicas.map((marca) => (
+                  <option key={marca} value={marca}>{marca}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-4 d-flex align-items-center justify-content-end">
               <small className="text-muted">
                 {productosFiltrados.length === productos.length
                   ? `${productos.length} productos`
@@ -261,6 +279,7 @@ const Inventario = () => {
                 <tr>
                   <th>Código</th>
                   <th>Producto</th>
+                  <th>Marca</th>
                   <th>Categoría</th>
                   <th>Moneda</th>
                   <th>Precio Base</th>
@@ -274,6 +293,7 @@ const Inventario = () => {
                     <tr key={p.id}>
                       <td><code>{p.codigo}</code></td>
                       <td>{p.nombre}</td>
+                      <td>{p.marca || <span className="text-muted">—</span>}</td>
                       <td>{p.categoria}</td>
                       <td>
                         <span className={`badge ${p.moneda_base === 'USD' ? 'bg-success' : p.moneda_base === 'COP' ? 'bg-primary' : 'bg-warning'}`}>
@@ -300,8 +320,8 @@ const Inventario = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center text-muted py-4">
-                      No se encontraron productos{busqueda ? ` para "${busqueda}"` : ''}.
+                    <td colSpan="8" className="text-center text-muted py-4">
+                      No se encontraron productos{busqueda ? ` para "${busqueda}"` : ''}{filtroMarca ? ` de la marca "${filtroMarca}"` : ''}.
                     </td>
                   </tr>
                 )}
@@ -318,11 +338,8 @@ const Inventario = () => {
               <nav>
                 <ul className="pagination pagination-sm mb-0">
                   <li className={`page-item ${paginaActual === 1 ? 'disabled' : ''}`}>
-                    <button className="page-link" onClick={() => irAPagina(paginaActual - 1)}>
-                      &laquo;
-                    </button>
+                    <button className="page-link" onClick={() => irAPagina(paginaActual - 1)}>&laquo;</button>
                   </li>
-
                   {paginaActual > 3 && (
                     <>
                       <li className="page-item">
@@ -331,13 +348,11 @@ const Inventario = () => {
                       <li className="page-item disabled"><span className="page-link">…</span></li>
                     </>
                   )}
-
                   {getPaginas().map((num) => (
                     <li key={num} className={`page-item ${paginaActual === num ? 'active' : ''}`}>
                       <button className="page-link" onClick={() => irAPagina(num)}>{num}</button>
                     </li>
                   ))}
-
                   {paginaActual < totalPaginas - 2 && (
                     <>
                       <li className="page-item disabled"><span className="page-link">…</span></li>
@@ -346,11 +361,8 @@ const Inventario = () => {
                       </li>
                     </>
                   )}
-
                   <li className={`page-item ${paginaActual === totalPaginas ? 'disabled' : ''}`}>
-                    <button className="page-link" onClick={() => irAPagina(paginaActual + 1)}>
-                      &raquo;
-                    </button>
+                    <button className="page-link" onClick={() => irAPagina(paginaActual + 1)}>&raquo;</button>
                   </li>
                 </ul>
               </nav>
@@ -383,6 +395,14 @@ const Inventario = () => {
                     <div className="col-12">
                       <label>Descripción</label>
                       <textarea className="form-control" rows="2" value={nuevoProducto.descripcion} onChange={(e) => setNuevoProducto({...nuevoProducto, descripcion: e.target.value})} />
+                    </div>
+                    <div className="col-md-6">
+                      <label>Marca</label>
+                      <input className="form-control" value={nuevoProducto.marca} onChange={(e) => setNuevoProducto({...nuevoProducto, marca: e.target.value})} placeholder="Opcional" />
+                    </div>
+                    <div className="col-md-6">
+                      <label>Categoría</label>
+                      <input className="form-control" value={nuevoProducto.categoria} onChange={(e) => setNuevoProducto({...nuevoProducto, categoria: e.target.value})} />
                     </div>
                     <div className="col-md-4">
                       <label>Moneda Base</label>
@@ -420,10 +440,6 @@ const Inventario = () => {
                       <label>Stock Mínimo</label>
                       <input type="number" className="form-control" value={nuevoProducto.stock_minimo} onChange={(e) => setNuevoProducto({...nuevoProducto, stock_minimo: e.target.value})} required />
                     </div>
-                    <div className="col-12">
-                      <label>Categoría</label>
-                      <input className="form-control" value={nuevoProducto.categoria} onChange={(e) => setNuevoProducto({...nuevoProducto, categoria: e.target.value})} />
-                    </div>
                   </div>
                 </div>
                 <div className="modal-footer">
@@ -456,15 +472,35 @@ const Inventario = () => {
                       <label>Nombre</label>
                       <input className="form-control" value={productoEditando.nombre} onChange={(e) => setProductoEditando({...productoEditando, nombre: e.target.value})} required />
                     </div>
+                    <div className="col-md-6">
+                      <label>Marca</label>
+                      <input className="form-control" value={productoEditando.marca || ''} onChange={(e) => setProductoEditando({...productoEditando, marca: e.target.value})} placeholder="Opcional" />
+                    </div>
+                    <div className="col-md-6">
+                      <label>Categoría</label>
+                      <input className="form-control" value={productoEditando.categoria || ''} onChange={(e) => setProductoEditando({...productoEditando, categoria: e.target.value})} />
+                    </div>
+                    <div className="col-md-4">
+                      <label>Precio Compra</label>
+                      <input type="number" step="0.01" className="form-control" value={productoEditando.precio_compra || ''} onChange={(e) => setProductoEditando({...productoEditando, precio_compra: e.target.value})} />
+                    </div>
                     <div className="col-md-4">
                       <label>Precio Venta</label>
                       <input type="number" step="0.01" className="form-control" value={productoEditando.precio_venta} onChange={(e) => setProductoEditando({...productoEditando, precio_venta: e.target.value})} required />
                     </div>
                     <div className="col-md-4">
+                      <label>Moneda Base</label>
+                      <select className="form-select" value={productoEditando.moneda_base || 'USD'} onChange={(e) => setProductoEditando({...productoEditando, moneda_base: e.target.value})}>
+                        <option value="USD">Dólar (USD)</option>
+                        <option value="COP">Peso (COP)</option>
+                        <option value="BS">Bolívar (Bs)</option>
+                      </select>
+                    </div>
+                    <div className="col-md-6">
                       <label>Stock Actual</label>
                       <input type="number" className="form-control" value={productoEditando.stock_actual} onChange={(e) => setProductoEditando({...productoEditando, stock_actual: e.target.value})} required />
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-6">
                       <label>Stock Mínimo</label>
                       <input type="number" className="form-control" value={productoEditando.stock_minimo} onChange={(e) => setProductoEditando({...productoEditando, stock_minimo: e.target.value})} required />
                     </div>
