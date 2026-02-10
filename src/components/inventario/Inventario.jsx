@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Calculator, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, RefreshCw, Calculator, Edit2, Trash2, AlertTriangle, Search } from 'lucide-react';
 import api from '../../services/api';
 import { formatearMoneda, formatearNumero } from '../../utils/formatters';
+
+const ITEMS_POR_PAGINA = 10;
 
 const Inventario = () => {
   const [productos, setProductos] = useState([]);
@@ -21,10 +23,19 @@ const Inventario = () => {
   const [mostrarTasas, setMostrarTasas] = useState(false);
   const [nuevasTasas, setNuevasTasas] = useState({ usd_cop: '', bs_cop: '', usd_bs: '' });
 
+  // Búsqueda y paginación
+  const [busqueda, setBusqueda] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
+
   useEffect(() => {
     fetchProductos();
     fetchTasasCambio();
   }, []);
+
+  // Resetear a página 1 cuando cambia la búsqueda
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda]);
 
   const fetchProductos = async () => {
     try {
@@ -137,6 +148,39 @@ const Inventario = () => {
     return (parseFloat(precio) * (1 + parseFloat(porcentaje) / 100)).toFixed(2);
   };
 
+  // Filtrado por búsqueda
+  const productosFiltrados = productos.filter((p) => {
+    const termino = busqueda.toLowerCase().trim();
+    if (!termino) return true;
+    return (
+      p.codigo?.toLowerCase().includes(termino) ||
+      p.nombre?.toLowerCase().includes(termino) ||
+      p.categoria?.toLowerCase().includes(termino)
+    );
+  });
+
+  // Paginación
+  const totalPaginas = Math.ceil(productosFiltrados.length / ITEMS_POR_PAGINA);
+  const indiceInicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+  const indiceFin = indiceInicio + ITEMS_POR_PAGINA;
+  const productosPaginados = productosFiltrados.slice(indiceInicio, indiceFin);
+
+  const irAPagina = (pagina) => {
+    if (pagina >= 1 && pagina <= totalPaginas) {
+      setPaginaActual(pagina);
+    }
+  };
+
+  // Genera array de números de página a mostrar
+  const getPaginas = () => {
+    const paginas = [];
+    const rango = 2;
+    for (let i = Math.max(1, paginaActual - rango); i <= Math.min(totalPaginas, paginaActual + rango); i++) {
+      paginas.push(i);
+    }
+    return paginas;
+  };
+
   if (loading) {
     return <div className="d-flex justify-content-center p-5"><div className="spinner-border"></div></div>;
   }
@@ -180,6 +224,37 @@ const Inventario = () => {
 
       <div className="card">
         <div className="card-body">
+
+          {/* Barra de búsqueda */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <div className="input-group">
+                <span className="input-group-text">
+                  <Search size={16} />
+                </span>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Buscar por código, nombre o categoría..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+                {busqueda && (
+                  <button className="btn btn-outline-secondary" onClick={() => setBusqueda('')}>
+                    &times;
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="col-md-6 d-flex align-items-center justify-content-end">
+              <small className="text-muted">
+                {productosFiltrados.length === productos.length
+                  ? `${productos.length} productos`
+                  : `${productosFiltrados.length} de ${productos.length} productos`}
+              </small>
+            </div>
+          </div>
+
           <div className="table-responsive">
             <table className="table">
               <thead>
@@ -194,29 +269,94 @@ const Inventario = () => {
                 </tr>
               </thead>
               <tbody>
-                {productos.map((p) => (
-                  <tr key={p.id}>
-                    <td><code>{p.codigo}</code></td>
-                    <td>{p.nombre}</td>
-                    <td>{p.categoria}</td>
-                    <td><span className={`badge ${p.moneda_base === 'USD' ? 'bg-success' : p.moneda_base === 'COP' ? 'bg-primary' : 'bg-warning'}`}>{p.moneda_base}</span></td>
-                    <td>{formatearMoneda(p.precio_venta, p.moneda_base)}</td>
-                    <td><span className={`badge ${p.stock_actual <= p.stock_minimo ? 'bg-warning' : 'bg-success'}`}>{p.stock_actual}</span></td>
-                    <td>
-                      <div className="btn-group">
-                        <button className="btn btn-sm btn-outline-success" onClick={() => {
-                          setProductoEditando({...p, porcentaje_ganancia: ''});
-                          setModalEditar(true);
-                        }}><Edit2 size={14} /></button>
-                        <button className="btn btn-sm btn-outline-primary" onClick={() => setModalStock(p)}>Stock</button>
-                        <button className="btn btn-sm btn-outline-danger" onClick={() => setModalEliminar(p)}><Trash2 size={14} /></button>
-                      </div>
+                {productosPaginados.length > 0 ? (
+                  productosPaginados.map((p) => (
+                    <tr key={p.id}>
+                      <td><code>{p.codigo}</code></td>
+                      <td>{p.nombre}</td>
+                      <td>{p.categoria}</td>
+                      <td>
+                        <span className={`badge ${p.moneda_base === 'USD' ? 'bg-success' : p.moneda_base === 'COP' ? 'bg-primary' : 'bg-warning'}`}>
+                          {p.moneda_base}
+                        </span>
+                      </td>
+                      <td>{formatearMoneda(p.precio_venta, p.moneda_base)}</td>
+                      <td>
+                        <span className={`badge ${p.stock_actual <= p.stock_minimo ? 'bg-warning' : 'bg-success'}`}>
+                          {p.stock_actual}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="btn-group">
+                          <button className="btn btn-sm btn-outline-success" onClick={() => {
+                            setProductoEditando({...p, porcentaje_ganancia: ''});
+                            setModalEditar(true);
+                          }}><Edit2 size={14} /></button>
+                          <button className="btn btn-sm btn-outline-primary" onClick={() => setModalStock(p)}>Stock</button>
+                          <button className="btn btn-sm btn-outline-danger" onClick={() => setModalEliminar(p)}><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="text-center text-muted py-4">
+                      No se encontraron productos{busqueda ? ` para "${busqueda}"` : ''}.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
+
+          {/* Paginación */}
+          {totalPaginas > 1 && (
+            <div className="d-flex justify-content-between align-items-center mt-3">
+              <small className="text-muted">
+                Mostrando {indiceInicio + 1}–{Math.min(indiceFin, productosFiltrados.length)} de {productosFiltrados.length} productos
+              </small>
+              <nav>
+                <ul className="pagination pagination-sm mb-0">
+                  <li className={`page-item ${paginaActual === 1 ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => irAPagina(paginaActual - 1)}>
+                      &laquo;
+                    </button>
+                  </li>
+
+                  {paginaActual > 3 && (
+                    <>
+                      <li className="page-item">
+                        <button className="page-link" onClick={() => irAPagina(1)}>1</button>
+                      </li>
+                      <li className="page-item disabled"><span className="page-link">…</span></li>
+                    </>
+                  )}
+
+                  {getPaginas().map((num) => (
+                    <li key={num} className={`page-item ${paginaActual === num ? 'active' : ''}`}>
+                      <button className="page-link" onClick={() => irAPagina(num)}>{num}</button>
+                    </li>
+                  ))}
+
+                  {paginaActual < totalPaginas - 2 && (
+                    <>
+                      <li className="page-item disabled"><span className="page-link">…</span></li>
+                      <li className="page-item">
+                        <button className="page-link" onClick={() => irAPagina(totalPaginas)}>{totalPaginas}</button>
+                      </li>
+                    </>
+                  )}
+
+                  <li className={`page-item ${paginaActual === totalPaginas ? 'disabled' : ''}`}>
+                    <button className="page-link" onClick={() => irAPagina(paginaActual + 1)}>
+                      &raquo;
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -296,7 +436,7 @@ const Inventario = () => {
         </div>
       )}
 
-      {/* Modal Editar (similar estructura) */}
+      {/* Modal Editar */}
       {modalEditar && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg">
